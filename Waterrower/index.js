@@ -10,12 +10,11 @@ var conn;
 var portname = "NULL";
 var type = process.env.TYPE || 'wr5';
 var debug = process.env.DEBUG ? console.log : function () { };
+debug = console.log;
 var state = 'closed'
 // State of the USB Serial connection
 var READ_RATE = 800;// frequency at which we query the S4/S5 in ms
 var BAUD_RATE = 19200;// baud rate of the S4/S5 com port connection
-
-console.log(process.env.DEBUG)
 
 exports.readStrokeCount = function (callback) { //TODO: async callback with (err, value) arguments
 	return values["STROKE_COUNT"];
@@ -35,6 +34,10 @@ exports.readDistance = function (callback) { //TODO: async callback with (err, v
 
 exports.readHeartRate = function (callback) { //TODO: async callback with (err, value) arguments
 	return values["HEARTRATE"];
+}
+
+exports.readCalories = function (callback) { //TODO: async callback with (err, value) arguments
+	return values["CALORIES"];
 }
 
 
@@ -159,21 +162,16 @@ var read = function (callback) { // this should be 'setup'
 			data = data.trim();
 		}
 		switch (data) {
-			case "PING":
-				break;
-			case "PULSE":
-				break;
-			case "STROKE":
-				break;
-			default:
-				callback(data);
+			case "PING": break;
+			case "PULSE": break;
+			case "STROKE": break;
+			default: callback(data);
 		}
 	});
 };
 
 
 var write = function (buffer) {
-	debug(">" + buffer)
 	conn.write(buffer + "\r\n", function (err, result) {
 		if (err == null) {
 			return ("");
@@ -204,7 +202,9 @@ var wr5 = {
 	"IDD148": { "response": "TOTAL_SPEED", "next": "IRD14A" },
 	"IDD14A": { "response": "AVERAGE_SPEED", "next": "IRD057" },
 	"IDD057": { "response": "DISTANCE", "next": "IRS1A0" },
-	"IDS1A0": { "response": "HEARTRATE", "next": "IRD140" },
+	//"IDS1A0": { "response": "HEARTRATE", "next": "IRD140" },
+	"IDS1A0": { "response": "HEARTRATE", "next": "IDS088" },
+	"IDS088": { "response": "CALORIES", "next": "IRD140" },
 	"AKR": { "response": "RESET", "next": "IRD140" }
 };
 
@@ -213,11 +213,11 @@ values["TOTAL_SPEED"] = 0;
 values["AVERAGE_SPEED"] = 0;
 values["DISTANCE"] = 0;
 values["HEARTRATE"] = 0;
+values["CALORIES"] = 0;
 
 var readMessage = function (message) {
     var response = { device: 'unknown', parameters: [], connected: false };
     message = message.trim();
-    debug(message);
     if (type == "unknown") {
 		if (message == "USB") {
 			type = "arduino";
